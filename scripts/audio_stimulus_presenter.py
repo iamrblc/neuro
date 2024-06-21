@@ -1,6 +1,22 @@
+
+##################
+# AUDIO STIMULUS #
+#   PRESENTER    #
+##################
+
+#####################
+# UNDER DEVELOPMENT #
+#####################
+
 import pygame
 import time
 import os
+
+'''
+IMPORTANT: Run this script form the scripts directory!
+
+Loads a list of sound files and plays them sequentially using pygame mixer.
+'''
 
 # Initialize pygame mixer
 pygame.mixer.init()
@@ -17,9 +33,6 @@ sound_files = ['dog_001.wav',
 
 print ("Sound files added")
 
-# Make ./scripts the current working directory
-os.chdir(os.path.dirname(__file__))
-print ("Current working directory set to ./scripts")
 
 # Preload sound files
 sounds = [pygame.mixer.Sound(file) for file in sound_files]
