@@ -15,11 +15,6 @@ ELTE University, Budapest
 # UNDER DEVELOPMENT #
 #####################
 
-import pygame               # Loads and plays the sound files
-import time                 # Waits for the sound to finish playing
-import os                   # For file path manipulation
-import random               # For pseudorandomization
-
 '''
 IMPORTANT: Run this script form the scripts directory!
 
@@ -29,68 +24,121 @@ The script doesn't check for snippet length and bitrate. It assumes all sound fi
 If it is important, that has to be addressed. 
 
 '''
-# Set random seed to ensure reproducibility
-random.seed(42)
 
-# This isolates the tag (dog, human, etc)
-def get_tag(element):
-    return element.split('_')[0]
+#### 0. SETUP 
+#### 0.1 Load packages
+import pygame               # Loads and plays the sound files
+import time                 # Waits for the sound to finish playing
+import os                   # For file path manipulation
+import random               # For pseudorandomization
+from collections import Counter # For counting elements
 
-# This function shuffles the list without consecutive repeats
-def pseudorandomizer(lst):
-    while True:
-        random.shuffle(lst)                                        # Shuffle the list
-        for i in range(1, len(lst)):
-            if get_tag(lst[i]) == get_tag(lst[i - 1]):             # But if two following tags are the same, reshuffle
-                break
-        else:
-            return lst                                             # If they are not the same move on
+#### 0.2 Set random seed to ensure reproducibility
+#random.seed(42)
 
-sample_list = ['dog_1', 'pig_1', 'human_1', 'environment_1', 'silence_1', 
-               'dog_2', 'pig_2', 'human_2', 'environment_2', 'silence_2', 
-               'dog_3', 'pig_3', 'human_3', 'environment_3', 'silence_3']
+#### 0.3 Constants
+NUM_REPS = 15                
+BLOCK_LENGTH = 6            
 
-print("Original list: ")
-print(sample_list)
+TAGS = ['dog',
+        'environment',
+        'human',
+        'swine',
+        'silence']
 
-# Shuffle without consecutive repeats
-shuffled_list = pseudorandomizer(sample_list)
-print("\nAfter pseudorandomization: ")
-print(shuffled_list)
-
-
-# Initialize pygame mixer
+#### 0.4 Initialize pygame mixer
 pygame.mixer.init()
+print ("The audio modul is up and running.")
 
-print ("Pygame mixer initialized")
+#### 0.5 Define functions
+#### 0.5.1 Sound loader
+def sound_loader(tag):
+    """
+    Load all .wav sounds from the specified folder based on the tag.
+    
+    Parameters:
+    tag (str): The tag for the sounds, which is also the folder name (e.g., dog, pig, human).
 
-# List of sound files to be played sequentially
-sound_files = ['dog_001.wav',
-               'dog_002.wav',
-               'dog_003.wav',
-               'dog_004.wav',
-               'dog_005.wav',
-               'dog_006.wav']
+    Returns:
+    list: A list of preloaded pygame Sound objects.
+    """
+    folder = f'../data_audio/{tag}'
+    sounds_list = []
+    
+    # Load all .wav files from the specified folder
+    for file in os.listdir(folder):
+        if file.endswith('.wav'):
+            sounds_list.append(os.path.join(folder, file))
+    
+    # Preload sound files
+    preloaded_sounds = [pygame.mixer.Sound(file) for file in sounds_list]
+    
+    print(f"All {tag} sounds preloaded")
+    
+    return preloaded_sounds
 
-print ("Sound files added")
+#### 0.5.2 Pseudorandomizer
+def pseudorandomizer(tags = TAGS, num_reps = NUM_REPS):
+    '''
+    In this context "pseudorandom" simply means random shuffle with no
+    two subsequent elements being the same.  
+    '''
+    total_count = num_reps * len(tags)
+    tag_counter = Counter(tags * num_reps)
+    
+    result = []
+    
+    def add_tag():
+        if len(result) == total_count:
+            return True
+        
+        available_tags = [tag for tag in tags if tag_counter[tag] > 0]
+        random.shuffle(available_tags)
+        
+        for tag in available_tags:
+            if len(result) == 0 or result[-1] != tag:
+                result.append(tag)
+                tag_counter[tag] -= 1
+                
+                if add_tag():
+                    return True
+                
+                # Backtrack
+                result.pop()
+                tag_counter[tag] += 1
+        
+        return False
+    
+    add_tag()
+    return result
 
-
-# Preload sound files
-sounds = [pygame.mixer.Sound(file) for file in sound_files]
-
-print ("Sounds preloaded")
-
-# Function to play a sound file and wait for it to finish
-def play_sound(sound, sound_number):
+#### 0.5.3 Sound player
+def play_sound(sound):
+    '''
+    This function is responsible for playing the sound snippets one
+    after the other. 
+    '''
     sound.play()
-    time.sleep(sound.get_length())
-    print(f'Sound {sound_number} finished')
+    time.sleep(sound.get_length()) 
 
-print("function declared")
+#### 1. Preload the sounds
+for tag in TAGS:
+    preloaded_sounds = sound_loader(tag)
+    globals()[f"{tag}_preloaded_sounds"] = preloaded_sounds
+    print(f"{tag}_preloaded_sounds: {preloaded_sounds}")
 
-# Play each preloaded sound in sequence with a counter
-for idx, sound in enumerate(sounds, start=1):
-    play_sound(sound, idx)
+#### 2. Create the pseudorandom sequence of blocks
+block_sequence = pseudorandomizer()
+print(len(block_sequence), block_sequence)
 
-print("All sounds finished playing.")
-
+#### 3. Run the experiment
+print("Experiment starts now.")
+for block in block_sequence:
+    preloaded_sounds = eval(f"{block}_preloaded_sounds")
+    play_this = random.sample(preloaded_sounds, BLOCK_LENGTH*2)
+    for snippet in play_this:
+        play_sound(snippet)
+    print(f"{block} sounds played")
+    time.sleep(2)
+    print("2 sec pause over")
+print("Experiment is over.")
