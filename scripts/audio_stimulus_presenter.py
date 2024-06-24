@@ -37,8 +37,12 @@ from collections import Counter # For counting elements
 #random.seed(42)
 
 #### 0.3 Constants
-NUM_REPS = 15                
-BLOCK_LENGTH = 6            
+# Ask for user input for NUM_REPS:
+NUM_REPS = int(input("How many repetitions should there be? "))
+# Block lenght (snippets are 0.5 sec long)                
+BLOCK_LENGTH = int(input("How long should the blocks be (seconds)? "))
+# Break lenght between blocks
+PAUSE_LENGTH = int(input("How long should the pause be (seconds)? "))       
 
 TAGS = ['dog',
         'environment',
@@ -139,6 +143,6 @@ for block in block_sequence:
     for snippet in play_this:
         play_sound(snippet)
     print(f"{block} sounds played")
-    time.sleep(2)
-    print("2 sec pause over")
+    time.sleep(PAUSE_LENGTH)
+    print("Pause is over.")
 print("Experiment is over.")
